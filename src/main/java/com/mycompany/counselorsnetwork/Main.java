@@ -27,18 +27,15 @@ public class Main {
 //    String normal_file = ataque + "normal_test_95.csv";
     public static void main(String[] args) throws IOException, Exception {
         Main m = new Main();
-        int[] featureSelection = new int[]{3, 6, 10, 9, 13};
-        Instances trainInstances = m.leadAndFilter(false, "/home/silvio/datasets/teste/train.csv", featureSelection);
-        Instances evaluationInstances = m.leadAndFilter(false, "/home/silvio/datasets/teste/evaluation.csv", featureSelection);
-        Instances testInstances = m.leadAndFilter(false, "/home/silvio/datasets/teste/test.csv", featureSelection);
+        int[] featureSelection = new int[]{79, 40, 68, 13, 55};
+        Instances trainInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/DETECTOR_UM_WEDNESDAY/10_train_files/compilado_train.csv", featureSelection);
+        Instances evaluationInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/DETECTOR_UM_WEDNESDAY/10_evaluation_files/compilado_evaluation.csv", featureSelection);
+        Instances testInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/DETECTOR_UM_WEDNESDAY/80_test_files/compilado_test_160.csv", featureSelection);
+//        Instances trainInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/pequeno1.csv", featureSelection);
+//        Instances evaluationInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/pequeno2.csv", featureSelection);
+//        Instances testInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/pequeno3.csv", featureSelection);
 
-        DetectorClassifier[] classifiers = {
-            new DetectorClassifier(new RandomTree(), "Random Tree"),
-            new DetectorClassifier(new RandomForest(), "Random Forest"),
-            new DetectorClassifier(new NaiveBayes(), "Naive Bayes"),
-            new DetectorClassifier(new J48(), "J48"),
-            new DetectorClassifier(new REPTree(), "REP Tree"),};
-        Detector D1 = new Detector(classifiers, trainInstances, evaluationInstances, testInstances);
+        Detector D1 = new Detector(trainInstances, evaluationInstances, testInstances);
 
         /* Setup */
         D1.createClusters(4, 4);
@@ -48,33 +45,67 @@ public class Main {
 
         /* Evaluation Phase */
         D1.evaluateClassifiersPerCluster();
-        
-        System.out.println("0"+D1.getClusters()[0].getClassifiers()[0].getEvaluationAccuracy());
-        System.out.println("1"+D1.getClusters()[1].getClassifiers()[0].getEvaluationAccuracy());
-        System.out.println("2"+D1.getClusters()[2].getClassifiers()[0].getEvaluationAccuracy());
-        System.out.println("3"+D1.getClusters()[3].getClassifiers()[0].getEvaluationAccuracy());
-        
+        D1.selectClassifierPerCluster();
+        System.out.println("------------------------------------------------------------------------");
+        System.out.println("  --  Evaluation");
+        System.out.println("------------------------------------------------------------------------");
         for (DetectorCluster d : D1.getClusters()) {
-            System.out.println("--------Cluster :");
+            System.out.println("---- Cluster " + d.clusterNum + ":");
             for (DetectorClassifier c : d.getClassifiers()) {
-                System.out.println(c.getName()
-                        + " - " + c.getEvaluationAccuracy()
-                        + " (VP;VN;FP;FN) = "
-                        + "("
-                        + c.getVP()
-                        + ";" + c.getVN()
-                        + ";" + c.getFP()
-                        + ";" + c.getFN()
-                        + ")"
-                );
+                if (c.isSelected()) {
+                    System.out.println("[X]" + c.getName()
+                            + " - " + c.getEvaluationAccuracy()
+                            + " (VP;VN;FP;FN) = "
+                            + "("
+                            + c.getVP()
+                            + ";" + c.getVN()
+                            + ";" + c.getFP()
+                            + ";" + c.getFN()
+                            + ")"
+                    );
+                } else {
+                    System.out.println(c.getName()
+                            + "[N] - " + c.getEvaluationAccuracy()
+                            + " (VP;VN;FP;FN) = "
+                            + "("
+                            + c.getVP()
+                            + ";" + c.getVN()
+                            + ";" + c.getFP()
+                            + ";" + c.getFN()
+                            + ")"
+                    );
+                }
             }
 
         }
 
         /* Test Phase */
+        System.out.println("------------------------------------------------------------------------");
+        System.out.println("  --  Test");
+        System.out.println("------------------------------------------------------------------------");
+        D1.clusterAndTestSample();
+        for (DetectorCluster d : D1.getClusters()) {
+            System.out.println("---- Cluster " + d.clusterNum + ":");
+            for (DetectorClassifier c : d.getClassifiers()) {
+                if (c.isSelected()) {
+                    System.out.println("[X]" + c.getName()
+                            + " - " + c.getTestAccuracy()
+                            + " (VP;VN;FP;FN) = "
+                            + "("
+                            + c.getVP()
+                            + ";" + c.getVN()
+                            + ";" + c.getFP()
+                            + ";" + c.getFN()
+                            + ")"
+                    );
+                }
+            }
+
+        }
+
     }
 
-    public Instances leadAndFilter(boolean printSelection, /*boolean removeLabel,*/ String file, int[] featureSelection) throws Exception {
+    public Instances leadAndFilter(boolean printSelection, String file, int[] featureSelection) throws Exception {
         Instances instances = new Instances(readDataFile(file));
         if (featureSelection.length > 0) {
             instances = applyFilterKeep(instances, featureSelection);

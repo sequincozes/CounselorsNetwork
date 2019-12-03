@@ -21,13 +21,16 @@ public class DetectorClassifier {
     double evaluationAccuracy;
     double testAccuracy;
     int VP, VN, FP, FN;
-    long evaluationNanotime;
-    long testNanotime;
-    long trainNanotime;
+    long evaluationNanotime = 0;
+    long testNanotime = 0;
+    long trainNanotime = 0;
+    boolean selected;
+    String normalClass;
 
-    public DetectorClassifier(Classifier classifier, String name) {
+    public DetectorClassifier(Classifier classifier, String name, String normalClass) {
         this.classifier = classifier;
         this.name = name;
+        this.normalClass = normalClass;
     }
 
     public Classifier train(Instances dataTrain) throws Exception {
@@ -37,7 +40,7 @@ public class DetectorClassifier {
         return classifier;
     }
 
-    public Classifier resetAndClassify(Instances dataTest, String normalClassName, boolean evaluation, ArrayList<Integer> clusteredInstances) throws Exception {
+    public Classifier resetAndEvaluate(Instances dataTest, ArrayList<Integer> clusteredInstances) throws Exception {
         long currentTime = System.nanoTime();
         setVN(0);
         setVP(0);
@@ -47,37 +50,53 @@ public class DetectorClassifier {
         for (int index = 0; index < clusteredInstances.size(); index++) {
             Instance instance = dataTest.get(index);
             if (classify(instance) == instance.classValue()) {
-                if (instance.stringValue(instance.attribute(instance.classIndex())).equals(normalClassName)) {
-                    setVN(getVN() + 1);
+                if (instance.stringValue(instance.attribute(instance.classIndex())).equals(normalClass)) {
+                    VN = VN + 1;
                 } else {
-                    setVP(getVP() + 1);
+                    VP = VP + 1;
                 }
-                // VP ou VN
             } else {
-                // FP ou FN
-                if (instance.stringValue(instance.attribute(instance.classIndex())).equals(normalClassName)) {
-                    setFP(getFP() + 1);
+                if (instance.stringValue(instance.attribute(instance.classIndex())).equals(normalClass)) {
+                    FP = FP + 1;
                 } else {
-                    setFN(getFN() + 1);
+                    FN = FN + 1;
                 }
             }
         }
-        long classificationTime = System.nanoTime() - currentTime;
+        long evaluationTime = System.nanoTime() - currentTime;
         double accuracy = Float.valueOf(((getVP() + getVN()) * 100) / (getVP() + getVN() + getFP() + getFN()));
-//        this.taxaDeteccao = Float.valueOf((getVP() * 100) / (getVP() + getFN()));
-//        this.taxaAlarmeFalsos = Float.valueOf((getFP() * 100) / (getVN() + getFP()));
-        if (evaluation) {
-            setEvaluationNanotime(classificationTime);
-            setEvaluationAccuracy(accuracy);
-        } else {
-            setTestNanotime(classificationTime);
-            setTestAccuracy(accuracy);
-        }
-
+        setEvaluationNanotime(evaluationTime);
+        setEvaluationAccuracy(accuracy);
         return classifier;
     }
 
-    public double classify(Instance singleInstance) throws Exception {
+    public void resetConters() {
+        setVN(0);
+        setVP(0);
+        setFN(0);
+        setFP(0);
+    }
+
+    public void classifySingle(Instance instance) throws Exception {
+        long currentTime = System.nanoTime();
+        double result = classify(instance);
+        testNanotime = testNanotime + (currentTime - System.nanoTime());
+        if (result == instance.classValue()) {
+            if (instance.stringValue(instance.attribute(instance.classIndex())).equals(normalClass)) {
+                VN = VN + 1;
+            } else {
+                VP = VP + 1;
+            }
+        } else {
+            if (instance.stringValue(instance.attribute(instance.classIndex())).equals(normalClass)) {
+                FP = FP + 1;
+            } else {
+                FN = FN + 1;
+            }
+        }
+    }
+
+    private double classify(Instance singleInstance) throws Exception {
 //        System.out.println("Classificando: " + singleInstance);
         return this.classifier.classifyInstance(singleInstance);
     }
@@ -107,11 +126,7 @@ public class DetectorClassifier {
     }
 
     public double getTestAccuracy() {
-        return testAccuracy;
-    }
-
-    public void setTestAccuracy(double testAccuracy) {
-        this.testAccuracy = testAccuracy;
+        return Float.valueOf(((getVP() + getVN()) * 100) / (getVP() + getVN() + getFP() + getFN()));
     }
 
     public int getVP() {
@@ -170,4 +185,11 @@ public class DetectorClassifier {
         this.trainNanotime = trainNanotime;
     }
 
+    public boolean isSelected() {
+        return selected;
+    }
+
+    public void setSelected(boolean selected) {
+        this.selected = selected;
+    }
 }
