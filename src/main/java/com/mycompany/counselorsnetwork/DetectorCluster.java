@@ -27,7 +27,7 @@ public class DetectorCluster {
         new DetectorClassifier(new REPTree(), "REP Tree", "BENIGN")};
     ArrayList<Integer> clusteredInstancesIndex; //[cluster][index]
     int clusterNum;
-    double threshold = 2; // 2% do best 
+    double threshold = 0.5; // 2% do best 
 
     public DetectorCluster(int clusterNum) {
         this.clusteredInstancesIndex = new ArrayList<Integer>();
@@ -93,4 +93,5 @@ public class DetectorCluster {
         this.threshold = threshold;
     }
 
+ 
 }

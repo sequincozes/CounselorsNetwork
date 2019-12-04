@@ -72,15 +72,32 @@ public class Detector {
         for (DetectorCluster cluster : clusters) {
             for (DetectorClassifier classifier : cluster.getClassifiers()) {
                 classifier.resetConters();
+                conflitos = 0;
             }
         }
 
         // Calculando teste
+        int maxSizeTrain = 10000;
         for (int index = 0; index < testInstances.size(); index++) {
             int clusterNum = kmeans.clusterInstance(testInstancesNoLabel.get(index));
+            double classFirstSelec = -1;
             for (DetectorClassifier c : clusters[clusterNum].getClassifiers()) {
                 if (c.isSelected()) {
-//                    c.classifySingle(testInstances.get(index));
+                    if (classFirstSelec < 0) {
+                        classFirstSelec = c.testSingle(testInstances.get(index));
+                    } else {
+                        if (c.testSingle(testInstances.get(index)) != classFirstSelec) {
+//                            System.out.println("Conflito: " + testInstances.get(index));
+                            conflitos = conflitos + 1;
+                            // Teste se todo conflito fosse resolvido
+//                            trainInstances.add(testInstances.get(index));
+                        }
+                    }
+                    // Teste Alimentando Geral
+                    if (maxSizeTrain > 0) {
+                        trainInstances.add(testInstances.get(index));
+                        maxSizeTrain--;
+                    }
                 }
             }
         }
@@ -101,4 +118,7 @@ public class Detector {
         }
     }
 
+    public int getConflitos() {
+        return conflitos;
+    }
 }

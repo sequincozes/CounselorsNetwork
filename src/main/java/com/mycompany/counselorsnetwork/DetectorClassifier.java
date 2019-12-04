@@ -77,7 +77,7 @@ public class DetectorClassifier {
         setFP(0);
     }
 
-    public void classifySingle(Instance instance) throws Exception {
+    public double testSingle(Instance instance) throws Exception {
         long currentTime = System.nanoTime();
         double result = classify(instance);
         testNanotime = testNanotime + (currentTime - System.nanoTime());
@@ -94,6 +94,7 @@ public class DetectorClassifier {
                 FN = FN + 1;
             }
         }
+        return result;
     }
 
     private double classify(Instance singleInstance) throws Exception {
@@ -126,7 +127,12 @@ public class DetectorClassifier {
     }
 
     public double getTestAccuracy() {
-        return Float.valueOf(((getVP() + getVN()) * 100) / (getVP() + getVN() + getFP() + getFN()));
+        try {
+            return Float.valueOf(((getVP() + getVN()) * 100) / (getVP() + getVN() + getFP() + getFN()));
+        } catch (ArithmeticException e) {
+//            System.out.println(e.getLocalizedMessage());
+        }
+        return -1;
     }
 
     public int getVP() {

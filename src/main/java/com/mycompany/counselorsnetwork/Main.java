@@ -10,11 +10,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Arrays;
-import weka.classifiers.bayes.NaiveBayes;
-import weka.classifiers.trees.J48;
-import weka.classifiers.trees.REPTree;
-import weka.classifiers.trees.RandomForest;
-import weka.classifiers.trees.RandomTree;
 import weka.core.Instances;
 
 /**
@@ -27,63 +22,79 @@ public class Main {
 //    String normal_file = ataque + "normal_test_95.csv";
     public static void main(String[] args) throws IOException, Exception {
         Main m = new Main();
-        int[] featureSelection = new int[]{79, 40, 68, 13, 55};
-        Instances trainInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/DETECTOR_UM_WEDNESDAY/10_train_files/compilado_train.csv", featureSelection);
-        Instances evaluationInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/DETECTOR_UM_WEDNESDAY/10_evaluation_files/compilado_evaluation.csv", featureSelection);
-        Instances testInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/DETECTOR_UM_WEDNESDAY/80_test_files/compilado_test_160.csv", featureSelection);
+        int[] featureSelection = new int[]{1, 2, 3, 4, 5};
+//        Instances trainInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/DETECTOR_UM_WEDNESDAY/10_train_files/compilado_train.csv", featureSelection);
+//        Instances evaluationInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/DETECTOR_UM_WEDNESDAY/10_evaluation_files/compilado_evaluation.csv", featureSelection);
+//        Instances testInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/DETECTOR_UM_WEDNESDAY/80_test_files/compilado_test_160.csv", featureSelection);
+
 //        Instances trainInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/pequeno1.csv", featureSelection);
 //        Instances evaluationInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/pequeno2.csv", featureSelection);
 //        Instances testInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/pequeno3.csv", featureSelection);
+        Instances trainInstances = m.leadAndFilter(false, "/home/silvio/datasets/teste/train_mini.csv", featureSelection);
+        Instances evaluationInstances = m.leadAndFilter(false, "/home/silvio/datasets/teste/evaluation.csv", featureSelection);
+        Instances testInstances = m.leadAndFilter(false, "/home/silvio/datasets/teste/test.csv", featureSelection);
 
+        /* Detector 1*/
         Detector D1 = new Detector(trainInstances, evaluationInstances, testInstances);
+        D1.createClusters(2, 2);
+        System.out.println("\n######## FASE 1");
+        D1 = trainEvaluateAndTest(D1, false);
+//        System.out.println("\n######## FASE 2 (Self Learning)");
+//        trainEvaluateAndTest(D1, false);
 
-        /* Setup */
-        D1.createClusters(4, 4);
+    }
 
+    private static Detector trainEvaluateAndTest(Detector D1, boolean printEvaluation) throws Exception {
         /* Train Phase*/
         D1.trainClassifiers();
+        System.out.println("Treinou com " + D1.trainInstances.numInstances());
 
         /* Evaluation Phase */
         D1.evaluateClassifiersPerCluster();
         D1.selectClassifierPerCluster();
-        System.out.println("------------------------------------------------------------------------");
-        System.out.println("  --  Evaluation");
-        System.out.println("------------------------------------------------------------------------");
-        for (DetectorCluster d : D1.getClusters()) {
-            System.out.println("---- Cluster " + d.clusterNum + ":");
-            for (DetectorClassifier c : d.getClassifiers()) {
-                if (c.isSelected()) {
-                    System.out.println("[X]" + c.getName()
-                            + " - " + c.getEvaluationAccuracy()
-                            + " (VP;VN;FP;FN) = "
-                            + "("
-                            + c.getVP()
-                            + ";" + c.getVN()
-                            + ";" + c.getFP()
-                            + ";" + c.getFN()
-                            + ")"
-                    );
-                } else {
-                    System.out.println(c.getName()
-                            + "[N] - " + c.getEvaluationAccuracy()
-                            + " (VP;VN;FP;FN) = "
-                            + "("
-                            + c.getVP()
-                            + ";" + c.getVN()
-                            + ";" + c.getFP()
-                            + ";" + c.getFN()
-                            + ")"
-                    );
+        if (printEvaluation) {
+            System.out.println("------------------------------------------------------------------------");
+            System.out.println("  --  Evaluation");
+            System.out.println("------------------------------------------------------------------------");
+            for (DetectorCluster d : D1.getClusters()) {
+                System.out.println("---- Cluster " + d.clusterNum + ":");
+                for (DetectorClassifier c : d.getClassifiers()) {
+                    if (c.isSelected()) {
+                        System.out.println("[X]" + c.getName()
+                                + " - " + c.getEvaluationAccuracy()
+                                + " (VP;VN;FP;FN) = "
+                                + "("
+                                + c.getVP()
+                                + ";" + c.getVN()
+                                + ";" + c.getFP()
+                                + ";" + c.getFN()
+                                + ")"
+                        );
+                    } else {
+                        System.out.println(c.getName()
+                                + "[N] - " + c.getEvaluationAccuracy()
+                                + " (VP;VN;FP;FN) = "
+                                + "("
+                                + c.getVP()
+                                + ";" + c.getVN()
+                                + ";" + c.getFP()
+                                + ";" + c.getFN()
+                                + ")"
+                        );
+                    }
                 }
+
             }
-
         }
-
         /* Test Phase */
-        System.out.println("------------------------------------------------------------------------");
-        System.out.println("  --  Test");
-        System.out.println("------------------------------------------------------------------------");
         D1.clusterAndTestSample();
+        System.out.println("------------------------------------------------------------------------");
+        System.out.println("  --  Test: " + D1.getConflitos() + " conflitos");
+        System.out.println("------------------------------------------------------------------------");
+//        int VP = 0;
+//        int VN = 0;
+//        int FP = 0;
+//        int FN = 0;
         for (DetectorCluster d : D1.getClusters()) {
             System.out.println("---- Cluster " + d.clusterNum + ":");
             for (DetectorClassifier c : d.getClassifiers()) {
@@ -98,11 +109,13 @@ public class Main {
                             + ";" + c.getFN()
                             + ")"
                     );
+                /* Atualiza Totais*/
                 }
+                
             }
 
         }
-
+        return D1;
     }
 
     public Instances leadAndFilter(boolean printSelection, String file, int[] featureSelection) throws Exception {
