@@ -5,6 +5,7 @@
  */
 package com.mycompany.counselorsnetwork;
 
+import java.util.ArrayList;
 import weka.clusterers.SimpleKMeans;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -23,6 +24,10 @@ public class Detector {
     Instances testInstances;
     int conflitos = 0;
     Instances testInstancesNoLabel;
+    int VP, VN, FP, FN;
+    String normalClass;
+
+    ArrayList<Double> historicalData = new ArrayList<>();
 
     public Detector(Instances trainInstances, Instances evaluationInstances, Instances testInstances) {
         this.trainInstances = trainInstances;
@@ -82,15 +87,37 @@ public class Detector {
             int clusterNum = kmeans.clusterInstance(testInstancesNoLabel.get(index));
             double classFirstSelec = -1;
             for (DetectorClassifier c : clusters[clusterNum].getClassifiers()) {
+                /* Se o classificador for selecionado, classificar com ele */
                 if (c.isSelected()) {
+                    double result = c.testSingle(testInstances.get(index));
+
+                    /* Verifica se o classificador atual está em conflito com o
+                        primeiro classificador selecionado */
                     if (classFirstSelec < 0) {
-                        classFirstSelec = c.testSingle(testInstances.get(index));
+                        classFirstSelec = result;
                     } else {
-                        if (c.testSingle(testInstances.get(index)) != classFirstSelec) {
-//                            System.out.println("Conflito: " + testInstances.get(index));
+                        Instance instance = testInstances.get(index);
+                        if (c.testSingle(instance) != classFirstSelec) {
+                            historicalData.add(-77.0);
                             conflitos = conflitos + 1;
-                            // Teste se todo conflito fosse resolvido
+                            break;
 //                            trainInstances.add(testInstances.get(index));
+                        } else {
+                            /* Armazena resultado por consenso */
+                            historicalData.add(index, result);
+                            if (result == instance.classValue()) {
+                                if (instance.stringValue(instance.attribute(instance.classIndex())).equals(normalClass)) {
+                                    VN = VN + 1;
+                                } else {
+                                    VP = VP + 1;
+                                }
+                            } else {
+                                if (instance.stringValue(instance.attribute(instance.classIndex())).equals(normalClass)) {
+                                    FP = FP + 1;
+                                } else {
+                                    FN = FN + 1;
+                                }
+                            }
                         }
                     }
                     // Teste Alimentando Geral
@@ -102,6 +129,10 @@ public class Detector {
             }
         }
 
+    }
+
+    public double getAdvice(int timestamp) {
+        return historicalData.get(timestamp);
     }
 
     public DetectorCluster[] getClusters() {
@@ -120,5 +151,55 @@ public class Detector {
 
     public int getConflitos() {
         return conflitos;
+    }
+
+    public void resetConters() {
+        setVN(0);
+        setVP(0);
+        setFN(0);
+        setFP(0);
+    }
+
+    public int getVP() {
+        return VP;
+    }
+
+    public void setVP(int VP) {
+        this.VP = VP;
+    }
+
+    public int getVN() {
+        return VN;
+    }
+
+    public void setVN(int VN) {
+        this.VN = VN;
+    }
+
+    public int getFP() {
+        return FP;
+    }
+
+    public void setFP(int FP) {
+        this.FP = FP;
+    }
+
+    public int getFN() {
+        return FN;
+    }
+
+    public void setFN(int FN) {
+        this.FN = FN;
+    }
+    
+     public double getDetectionAccuracy() {
+        try {
+            return Float.valueOf(
+                    Float.valueOf((getVP() + getVN()) * 100)
+                    / Float.valueOf(getVP() + getVN() + getFP() + getFN()));
+        } catch (ArithmeticException e) {
+//            System.out.println(e.getLocalizedMessage());
+        }
+        return -1;
     }
 }

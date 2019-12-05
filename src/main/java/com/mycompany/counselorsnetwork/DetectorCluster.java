@@ -20,11 +20,11 @@ import weka.core.Instances;
 public class DetectorCluster {
 
     DetectorClassifier[] classifiers = {
-        new DetectorClassifier(new RandomTree(), "Random Tree", "BENIGN"),
-        new DetectorClassifier(new RandomForest(), "Random Forest", "BENIGN"),
-        new DetectorClassifier(new NaiveBayes(), "Naive Bayes", "BENIGN"),
-        new DetectorClassifier(new J48(), "J48", "BENIGN"),
-        new DetectorClassifier(new REPTree(), "REP Tree", "BENIGN")};
+        new DetectorClassifier(new RandomTree(), "Random Tree", "Normal"),
+        new DetectorClassifier(new RandomForest(), "Random Forest", "Normal"),
+        new DetectorClassifier(new NaiveBayes(), "Naive Bayes", "Normal"),
+        new DetectorClassifier(new J48(), "J48", "Normal"),
+        new DetectorClassifier(new REPTree(), "REP Tree", "Normal")};
     ArrayList<Integer> clusteredInstancesIndex; //[cluster][index]
     int clusterNum;
     double threshold = 0.5; // 2% do best 
@@ -49,7 +49,6 @@ public class DetectorCluster {
         for (DetectorClassifier c : classifiers) {
             if (c.evaluationAccuracy > best.getEvaluationAccuracy()) {
                 best = c;
-                System.out.println("Best: " + c.getName() + " (" + c.getEvaluationAccuracy() + ")");
             }
         }
 

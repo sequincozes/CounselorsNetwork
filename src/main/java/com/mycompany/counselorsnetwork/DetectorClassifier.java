@@ -50,13 +50,13 @@ public class DetectorClassifier {
         for (int index = 0; index < clusteredInstances.size(); index++) {
             Instance instance = dataTest.get(index);
             if (classify(instance) == instance.classValue()) {
-                if (instance.stringValue(instance.attribute(instance.classIndex())).equals(normalClass)) {
+                if (instance.stringValue(instance.attribute(instance.classIndex())).equals(getNormalClass())) {
                     VN = VN + 1;
                 } else {
                     VP = VP + 1;
                 }
             } else {
-                if (instance.stringValue(instance.attribute(instance.classIndex())).equals(normalClass)) {
+                if (instance.stringValue(instance.attribute(instance.classIndex())).equals(getNormalClass())) {
                     FP = FP + 1;
                 } else {
                     FN = FN + 1;
@@ -64,7 +64,9 @@ public class DetectorClassifier {
             }
         }
         long evaluationTime = System.nanoTime() - currentTime;
-        double accuracy = Float.valueOf(((getVP() + getVN()) * 100) / (getVP() + getVN() + getFP() + getFN()));
+        double accuracy = Float.valueOf(
+                Float.valueOf((getVP() + getVN()) * 100)
+                / Float.valueOf(getVP() + getVN() + getFP() + getFN()));
         setEvaluationNanotime(evaluationTime);
         setEvaluationAccuracy(accuracy);
         return classifier;
@@ -128,7 +130,9 @@ public class DetectorClassifier {
 
     public double getTestAccuracy() {
         try {
-            return Float.valueOf(((getVP() + getVN()) * 100) / (getVP() + getVN() + getFP() + getFN()));
+            return Float.valueOf(
+                    Float.valueOf((getVP() + getVN()) * 100)
+                    / Float.valueOf(getVP() + getVN() + getFP() + getFN()));
         } catch (ArithmeticException e) {
 //            System.out.println(e.getLocalizedMessage());
         }
@@ -197,5 +201,9 @@ public class DetectorClassifier {
 
     public void setSelected(boolean selected) {
         this.selected = selected;
+    }
+
+    public String getNormalClass() {
+        return normalClass;
     }
 }

@@ -34,14 +34,25 @@ public class Main {
         Instances evaluationInstances = m.leadAndFilter(false, "/home/silvio/datasets/teste/evaluation.csv", featureSelection);
         Instances testInstances = m.leadAndFilter(false, "/home/silvio/datasets/teste/test.csv", featureSelection);
 
+        Instances evaluationInstances2 = m.leadAndFilter(false, "/home/silvio/datasets/teste/train_mini.csv", featureSelection);
+        Instances trainInstances2 = m.leadAndFilter(false, "/home/silvio/datasets/teste/evaluation.csv", featureSelection);
+        Instances testInstances2 = m.leadAndFilter(false, "/home/silvio/datasets/teste/test.csv", featureSelection);
+
         /* Detector 1*/
         Detector D1 = new Detector(trainInstances, evaluationInstances, testInstances);
         D1.createClusters(2, 2);
-        System.out.println("\n######## FASE 1");
+        System.out.println("\n######## Detector 1");
+        D1.resetConters();
         D1 = trainEvaluateAndTest(D1, false);
+
+
+        /* Detector 1*/
+//        Detector D2 = new Detector(trainInstances2, evaluationInstances2, testInstances2);
+//        D2.createClusters(2, 2);
+//        System.out.println("\n######## Detector 2");
+//        D2 = trainEvaluateAndTest(D2, false);
 //        System.out.println("\n######## FASE 2 (Self Learning)");
 //        trainEvaluateAndTest(D1, false);
-
     }
 
     private static Detector trainEvaluateAndTest(Detector D1, boolean printEvaluation) throws Exception {
@@ -87,9 +98,10 @@ public class Main {
             }
         }
         /* Test Phase */
+        D1.resetConters();
         D1.clusterAndTestSample();
         System.out.println("------------------------------------------------------------------------");
-        System.out.println("  --  Test: " + D1.getConflitos() + " conflitos");
+        System.out.println("  --  Test: " + D1.getConflitos() + " conflitos" + "(Acc;VP;VN;FP;FN;" + D1.getDetectionAccuracy() + ";" + D1.getVP() + ";" + D1.getVN() + ";" + D1.getFP() + ";" + D1.getFN() + ")");
         System.out.println("------------------------------------------------------------------------");
 //        int VP = 0;
 //        int VN = 0;
@@ -104,14 +116,14 @@ public class Main {
                             + " (VP;VN;FP;FN) = "
                             + "("
                             + c.getVP()
-                            + ";" + c.getVN()
-                            + ";" + c.getFP()
-                            + ";" + c.getFN()
+                            + "+" + c.getVN()
+                            + "+" + c.getFP()
+                            + "+" + c.getFN()
                             + ")"
                     );
-                /* Atualiza Totais*/
+                    /* Atualiza Totais*/
                 }
-                
+
             }
 
         }
