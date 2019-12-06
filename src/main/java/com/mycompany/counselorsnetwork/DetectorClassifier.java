@@ -33,10 +33,14 @@ public class DetectorClassifier {
         this.normalClass = normalClass;
     }
 
-    public Classifier train(Instances dataTrain) throws Exception {
+    public Classifier train(Instances dataTrain, boolean showTrainingTime) throws Exception {
         long currentTime = System.nanoTime();
         classifier.buildClassifier(dataTrain);
-        setTrainNanotime(System.nanoTime() - currentTime);
+        long traininigTime = System.nanoTime() - currentTime;
+        setTrainNanotime(traininigTime);
+        if (showTrainingTime) {
+            System.out.println("Classificador " + getName() + " treinaado em: " + traininigTime / 1000000 + "ms/" + traininigTime + "ns");
+        }
         return classifier;
     }
 
@@ -46,6 +50,7 @@ public class DetectorClassifier {
         setVP(0);
         setFN(0);
         setFP(0);
+        setSelected(false);
         dataTest.setClassIndex(dataTest.numAttributes() - 1);
         for (int index = 0; index < clusteredInstances.size(); index++) {
             Instance instance = dataTest.get(index);
@@ -100,7 +105,7 @@ public class DetectorClassifier {
     }
 
     private double classify(Instance singleInstance) throws Exception {
-//        System.out.println("Classificando: " + singleInstance);
+//        System.out.println(getName() + " classificando: " + singleInstance);
         return this.classifier.classifyInstance(singleInstance);
     }
 

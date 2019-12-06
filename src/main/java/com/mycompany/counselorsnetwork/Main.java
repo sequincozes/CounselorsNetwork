@@ -20,45 +20,51 @@ public class Main {
 
 //    String test_file = ataque + "test_95.csv";
 //    String normal_file = ataque + "normal_test_95.csv";
+    static final String NORMAL_CLASS = "Normal";
+
     public static void main(String[] args) throws IOException, Exception {
         Main m = new Main();
         int[] featureSelection = new int[]{1, 2, 3, 4, 5};
+        //int[] featureSelection = new int[]{};
 //        Instances trainInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/DETECTOR_UM_WEDNESDAY/10_train_files/compilado_train.csv", featureSelection);
 //        Instances evaluationInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/DETECTOR_UM_WEDNESDAY/10_evaluation_files/compilado_evaluation.csv", featureSelection);
 //        Instances testInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/DETECTOR_UM_WEDNESDAY/80_test_files/compilado_test_160.csv", featureSelection);
 
 //        Instances trainInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/pequeno1.csv", featureSelection);
 //        Instances evaluationInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/pequeno2.csv", featureSelection);
-//        Instances testInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/pequeno3.csv", featureSelection);
+        Instances testInstances = m.leadAndFilter(false, "/home/silvio/datasets/teste/testinho.csv", featureSelection);
         Instances trainInstances = m.leadAndFilter(false, "/home/silvio/datasets/teste/train_mini.csv", featureSelection);
         Instances evaluationInstances = m.leadAndFilter(false, "/home/silvio/datasets/teste/evaluation.csv", featureSelection);
-        Instances testInstances = m.leadAndFilter(false, "/home/silvio/datasets/teste/test.csv", featureSelection);
+//        Instances testInstances = m.leadAndFilter(false, "/home/silvio/datasets/teste/test.csv", featureSelection);
 
         Instances evaluationInstances2 = m.leadAndFilter(false, "/home/silvio/datasets/teste/train_mini.csv", featureSelection);
         Instances trainInstances2 = m.leadAndFilter(false, "/home/silvio/datasets/teste/evaluation.csv", featureSelection);
-        Instances testInstances2 = m.leadAndFilter(false, "/home/silvio/datasets/teste/test.csv", featureSelection);
+        Instances testInstances2 = m.leadAndFilter(false, "/home/silvio/datasets/teste/testinho.csv", featureSelection);
 
         /* Detector 1*/
-        Detector D1 = new Detector(trainInstances, evaluationInstances, testInstances);
-        D1.createClusters(2, 2);
+        Detector D1 = new Detector(trainInstances, evaluationInstances, testInstances, NORMAL_CLASS);
+        D1.createClusters(5, 2);
         System.out.println("\n######## Detector 1");
         D1.resetConters();
-        D1 = trainEvaluateAndTest(D1, false);
-
+        D1 = trainEvaluateAndTest(D1, false, false, false);
 
         /* Detector 1*/
-//        Detector D2 = new Detector(trainInstances2, evaluationInstances2, testInstances2);
-//        D2.createClusters(2, 2);
-//        System.out.println("\n######## Detector 2");
-//        D2 = trainEvaluateAndTest(D2, false);
-//        System.out.println("\n######## FASE 2 (Self Learning)");
-//        trainEvaluateAndTest(D1, false);
+        Detector[] advisors = {D1};
+        Detector D2 = new Detector(trainInstances2, evaluationInstances2, testInstances2, advisors, NORMAL_CLASS);
+        D2.createClusters(3, 2);
+        System.out.println("\n######## Detector 2");
+        D2.resetConters();
+        D2 = trainEvaluateAndTest(D2, false, false, true);
+
     }
 
-    private static Detector trainEvaluateAndTest(Detector D1, boolean printEvaluation) throws Exception {
+    private static Detector trainEvaluateAndTest(Detector D1, boolean printEvaluation, boolean printTrain, boolean advices) throws Exception {
         /* Train Phase*/
-        D1.trainClassifiers();
-        System.out.println("Treinou com " + D1.trainInstances.numInstances());
+        System.out.println("------------------------------------------------------------------------");
+        System.out.println("  --  Train");
+        System.out.println("------------------------------------------------------------------------");
+        System.out.println("Treinamento com " + D1.trainInstances.numInstances() + " instâncias.");
+        D1.trainClassifiers(printTrain);
 
         /* Evaluation Phase */
         D1.evaluateClassifiersPerCluster();
@@ -98,11 +104,12 @@ public class Main {
             }
         }
         /* Test Phase */
+        System.out.println("------------------------------------------------------------------------");
+        System.out.println("  --  Test");
+        System.out.println("------------------------------------------------------------------------");
         D1.resetConters();
-        D1.clusterAndTestSample();
-        System.out.println("------------------------------------------------------------------------");
-        System.out.println("  --  Test: " + D1.getConflitos() + " conflitos" + "(Acc;VP;VN;FP;FN;" + D1.getDetectionAccuracy() + ";" + D1.getVP() + ";" + D1.getVN() + ";" + D1.getFP() + ";" + D1.getFN() + ")");
-        System.out.println("------------------------------------------------------------------------");
+        D1.clusterAndTestSample(advices);
+
 //        int VP = 0;
 //        int VN = 0;
 //        int FP = 0;
@@ -116,17 +123,22 @@ public class Main {
                             + " (VP;VN;FP;FN) = "
                             + "("
                             + c.getVP()
-                            + "+" + c.getVN()
-                            + "+" + c.getFP()
-                            + "+" + c.getFN()
-                            + ")"
-                    );
+                            + ";" + c.getVN()
+                            + ";" + c.getFP()
+                            + ";" + c.getFN()
+                            + ") = ("
+                            + (c.getVP() + c.getVN() + c.getFP() + c.getFN())
+                            + "/" + D1.getCountTestInstances() + ")");
                     /* Atualiza Totais*/
                 }
 
             }
 
         }
+        System.out.println("------------------------------------------------------------------------");
+        System.out.println("  --  Test Summary: [" + D1.getConflitos() + "- conflitos] (Acc;VP;VN;FP;FN;" + D1.getDetectionAccuracy() + ";" + D1.getVP() + ";" + D1.getVN() + ";" + D1.getFP() + ";" + D1.getFN() + ") = (" + (D1.getVP() + D1.getVN() + D1.getFP() + D1.getFN()) + ")");
+        System.out.println("------------------------------------------------------------------------");
+
         return D1;
     }
 

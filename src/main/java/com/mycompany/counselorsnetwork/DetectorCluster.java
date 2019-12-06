@@ -5,6 +5,7 @@
  */
 package com.mycompany.counselorsnetwork;
 
+import static com.mycompany.counselorsnetwork.Main.NORMAL_CLASS;
 import java.util.ArrayList;
 import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.trees.J48;
@@ -20,11 +21,15 @@ import weka.core.Instances;
 public class DetectorCluster {
 
     DetectorClassifier[] classifiers = {
-        new DetectorClassifier(new RandomTree(), "Random Tree", "Normal"),
-        new DetectorClassifier(new RandomForest(), "Random Forest", "Normal"),
-        new DetectorClassifier(new NaiveBayes(), "Naive Bayes", "Normal"),
-        new DetectorClassifier(new J48(), "J48", "Normal"),
-        new DetectorClassifier(new REPTree(), "REP Tree", "Normal")};
+        new DetectorClassifier(new RandomTree(), "Random Tree", NORMAL_CLASS),
+        new DetectorClassifier(new RandomForest(), "Random Forest", NORMAL_CLASS),
+        new DetectorClassifier(new NaiveBayes(), "Naive Bayes", NORMAL_CLASS),
+        new DetectorClassifier(new J48(), "J48", NORMAL_CLASS),
+        new DetectorClassifier(new REPTree(), "REP Tree", NORMAL_CLASS)
+    };
+
+    ArrayList<DetectorClassifier> selectedClassifiers;
+
     ArrayList<Integer> clusteredInstancesIndex; //[cluster][index]
     int clusterNum;
     double threshold = 0.5; // 2% do best 
@@ -45,6 +50,7 @@ public class DetectorCluster {
     }
 
     public void classifierSelection() throws Exception {
+        selectedClassifiers = new ArrayList<>();
         DetectorClassifier best = classifiers[0];
         for (DetectorClassifier c : classifiers) {
             if (c.evaluationAccuracy > best.getEvaluationAccuracy()) {
@@ -54,6 +60,7 @@ public class DetectorCluster {
 
         for (DetectorClassifier c : classifiers) {
             if (c.evaluationAccuracy + threshold >= best.getEvaluationAccuracy()) {
+                selectedClassifiers.add(c);
                 c.setSelected(true);
             } else {
                 c.setSelected(false);
@@ -61,15 +68,21 @@ public class DetectorCluster {
         }
     }
 
-    public void trainClassifiers(Instances dataTrain) throws Exception {
+    public void trainClassifiers(Instances dataTrain, boolean showTrainingTime) throws Exception {
         for (DetectorClassifier c : classifiers) {
             dataTrain.setClassIndex(dataTrain.numAttributes() - 1);
-            c.train(dataTrain);
+            c.train(dataTrain, showTrainingTime);
         }
     }
 
-    public DetectorClassifier[] getClassifiers() {
-        return this.classifiers;
+    public void trainClassifiers(DetectorClassifier[] classifiersTrained) throws Exception {
+        for (int i = 0; i < classifiers.length - 1; i++) {
+            classifiers[i] = classifiersTrained[i];
+        }
+    }
+
+    public ArrayList<DetectorClassifier> getSelectedClassifiers() {
+        return this.selectedClassifiers;
     }
 
     public ArrayList<Integer> getClusteredInstancesIndex() {
@@ -92,5 +105,8 @@ public class DetectorCluster {
         this.threshold = threshold;
     }
 
- 
+    public DetectorClassifier[] getClassifiers() {
+        return classifiers;
+    }
+
 }

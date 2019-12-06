@@ -22,14 +22,16 @@ public class Detector {
     Instances evaluationInstances;
     Instances evaluationInstancesNoLabel;
     Instances testInstances;
-    int conflitos = 0;
     Instances testInstancesNoLabel;
     int VP, VN, FP, FN;
+    int conflitos = 0;
+    int goodAdvices = 0;
     String normalClass;
+    Detector[] advisors;
 
-    ArrayList<Double> historicalData = new ArrayList<>();
+    ArrayList<Advice> historicalData = new ArrayList<>();
 
-    public Detector(Instances trainInstances, Instances evaluationInstances, Instances testInstances) {
+    public Detector(Instances trainInstances, Instances evaluationInstances, Instances testInstances, String normalClass) {
         this.trainInstances = trainInstances;
         this.evaluationInstances = evaluationInstances;
         this.evaluationInstancesNoLabel = new Instances(evaluationInstances);
@@ -38,6 +40,22 @@ public class Detector {
         this.testInstancesNoLabel = new Instances(testInstances);;
         testInstancesNoLabel.deleteAttributeAt(testInstancesNoLabel.numAttributes() - 1);  // Removendo classe
         testInstances.setClassIndex(evaluationInstances.numAttributes() - 1);
+        advisors = new Detector[0];
+        this.normalClass = normalClass;
+
+    }
+
+    public Detector(Instances trainInstances, Instances evaluationInstances, Instances testInstances, Detector[] advisors, String normalClass) {
+        this.trainInstances = trainInstances;
+        this.evaluationInstances = evaluationInstances;
+        this.evaluationInstancesNoLabel = new Instances(evaluationInstances);
+        evaluationInstancesNoLabel.deleteAttributeAt(evaluationInstancesNoLabel.numAttributes() - 1);  // Removendo classe
+        this.testInstances = testInstances;
+        this.testInstancesNoLabel = new Instances(testInstances);;
+        testInstancesNoLabel.deleteAttributeAt(testInstancesNoLabel.numAttributes() - 1);  // Removendo classe
+        testInstances.setClassIndex(evaluationInstances.numAttributes() - 1);
+        this.advisors = advisors;
+        this.normalClass = normalClass;
     }
 
     public void createClusters(int k, int seed) throws Exception {
@@ -59,9 +77,9 @@ public class Detector {
 
     }
 
-    public void trainClassifiers() throws Exception {
+    public void trainClassifiers(boolean showTrainingTime) throws Exception {
         for (DetectorCluster cluster : clusters) {
-            cluster.trainClassifiers(trainInstances);
+            cluster.trainClassifiers(trainInstances, showTrainingTime);
         }
     }
 
@@ -72,66 +90,113 @@ public class Detector {
         }
     }
 
-    public void clusterAndTestSample() throws Exception {
-        // Zerando contadores
-        for (DetectorCluster cluster : clusters) {
-            for (DetectorClassifier classifier : cluster.getClassifiers()) {
-                classifier.resetConters();
-                conflitos = 0;
-            }
-        }
-
+    public void clusterAndTestSample(boolean enableAdvice) throws Exception {
         // Calculando teste
-        int maxSizeTrain = 10000;
-        for (int index = 0; index < testInstances.size(); index++) {
-            int clusterNum = kmeans.clusterInstance(testInstancesNoLabel.get(index));
-            double classFirstSelec = -1;
-            for (DetectorClassifier c : clusters[clusterNum].getClassifiers()) {
-                /* Se o classificador for selecionado, classificar com ele */
-                if (c.isSelected()) {
-                    double result = c.testSingle(testInstances.get(index));
+//        int maxSizeTrain = 10000;
+        for (int instIndex = 0; instIndex < testInstances.size(); instIndex++) {
+            int tenPercent = testInstances.size() / 10;
+            if (tenPercent == instIndex) {
+                System.out.print("[10%]");
+            } else if (tenPercent * 2 == instIndex) {
+                System.out.print("[20%]");
+            } else if (tenPercent * 3 == instIndex) {
+                System.out.print("[30%]");
+            } else if (tenPercent * 4 == instIndex) {
+                System.out.print("[40%]");
+            } else if (tenPercent * 5 == instIndex) {
+                System.out.print("[50%]");
+            } else if (tenPercent * 6 == instIndex) {
+                System.out.print("[60%]");
+            } else if (tenPercent * 7 == instIndex) {
+                System.out.print("[70%]");
+            } else if (tenPercent * 8 == instIndex) {
+                System.out.print("[80%]");
+            } else if (tenPercent * 9 == instIndex) {
+                System.out.print("[90%]");
+            } else if (tenPercent * 10 == instIndex) {
+                System.out.print("[100%]");
+            }
+            //          System.out.println("index: "+instIndex+"/"+testInstances.size());
+            int clusterNum = kmeans.clusterInstance(testInstancesNoLabel.get(instIndex));
+            ArrayList<DetectorClassifier> selectedClassifiers = clusters[clusterNum].getSelectedClassifiers();
+            int qtdClassificadores = selectedClassifiers.size();
+            double classifiersOutput[][] = new double[qtdClassificadores][testInstances.size()];
+            for (int classifIndex = 0; classifIndex < qtdClassificadores; classifIndex++) {
+                DetectorClassifier c = selectedClassifiers.get(classifIndex);
 
-                    /* Verifica se o classificador atual está em conflito com o
-                        primeiro classificador selecionado */
-                    if (classFirstSelec < 0) {
-                        classFirstSelec = result;
-                    } else {
-                        Instance instance = testInstances.get(index);
-                        if (c.testSingle(instance) != classFirstSelec) {
-                            historicalData.add(-77.0);
-                            conflitos = conflitos + 1;
-                            break;
-//                            trainInstances.add(testInstances.get(index));
+                /* Se o classificador for selecionado, classificar com ele */
+                Instance instance = testInstances.get(instIndex);
+                double result = c.testSingle(instance);
+                double correctValue = instance.classValue();
+                classifiersOutput[classifIndex][instIndex] = result;
+
+                /* Verifica existe conflito com classificador anterior */
+                if (classifIndex == (qtdClassificadores - 1)) {
+//                    System.out.println("/: " + classifIndex + "/Qtd-1: " + (qtdClassificadores - 1));
+                    historicalData.add(instIndex, new Advice(c.evaluationAccuracy, result, correctValue, normalClass));
+                    if (result == correctValue) {
+                        if (instance.stringValue(instance.attribute(instance.classIndex())).equals(normalClass)) {
+                            VN = VN + 1;
                         } else {
-                            /* Armazena resultado por consenso */
-                            historicalData.add(index, result);
-                            if (result == instance.classValue()) {
-                                if (instance.stringValue(instance.attribute(instance.classIndex())).equals(normalClass)) {
-                                    VN = VN + 1;
-                                } else {
-                                    VP = VP + 1;
-                                }
-                            } else {
-                                if (instance.stringValue(instance.attribute(instance.classIndex())).equals(normalClass)) {
-                                    FP = FP + 1;
-                                } else {
-                                    FN = FN + 1;
+                            VP = VP + 1;
+                        }
+                    } else {
+                        if (instance.stringValue(instance.attribute(instance.classIndex())).equals(normalClass)) {
+                            FP = FP + 1;
+                        } else {
+                            FN = FN + 1;
+                        }
+
+                    }
+
+                } else if (classifIndex > 0 && selectedClassifiers.size() > 1) {
+//                    System.out.println("ClasseIndex: " + classifIndex + "/Qtd-1: " + (qtdClassificadores - 1));
+
+                    if (classifiersOutput[classifIndex][instIndex] != classifiersOutput[classifIndex - 1][instIndex]) {
+                        // Conflito
+                        historicalData.add(new Advice(0, -77, correctValue, normalClass));
+                        conflitos = conflitos + 1;
+                        if (enableAdvice) {
+//                            System.out.println("########## CONFLITO #########");
+//                            System.out.println("Classifier output:" + classifiersOutput[classifIndex][instIndex] + " vs " + classifiersOutput[classifIndex - 1][instIndex]);
+                            if (advisors.length > 0) {
+                                for (Detector d : advisors) {
+                                    Advice advice = d.getAdvice(instIndex);
+//                                    System.out.println("Requesting conseil...");
+                                    System.out.println("Advisors' response: " + advice.getAdvisorResult() + " (" + String.valueOf(advice.accuracy).substring(0, 5) + ")%, correct is: " + advice.correctResult + "(Good Adivices: " + getGoodAdvices() + ")");
+                                    if (advice.getAdvisorResult() == correctValue) {
+                                        goodAdvices = goodAdvices + 1;
+//                                        System.out.println("Class: " + advice.getClassNormal());
+                                        if (advice.getClassNormal().equals(normalClass)) {
+                                            VN = VN + 1;
+                                        } else {
+                                            VP = VP + 1;
+                                        }
+                                    } else {
+                                        if (advice.getClassNormal().equals(normalClass)) {
+                                            FP = FP + 1;
+                                        } else {
+                                            FN = FN + 1;
+                                        }
+
+                                    }
                                 }
                             }
                         }
                     }
-                    // Teste Alimentando Geral
-                    if (maxSizeTrain > 0) {
-                        trainInstances.add(testInstances.get(index));
-                        maxSizeTrain--;
-                    }
                 }
-            }
-        }
 
+            }
+
+            // Teste Alimentando Geral
+            // if (maxSizeTrain > 0) {
+            //    trainInstances.add(testInstances.get(index));
+            // maxSizeTrain--;
+            //  }
+        }
     }
 
-    public double getAdvice(int timestamp) {
+    public Advice getAdvice(int timestamp) {
         return historicalData.get(timestamp);
     }
 
@@ -154,10 +219,17 @@ public class Detector {
     }
 
     public void resetConters() {
+        for (DetectorCluster cluster : clusters) {
+            for (DetectorClassifier classifier : cluster.getClassifiers()) {
+                classifier.resetConters();
+            }
+        }
+
         setVN(0);
         setVP(0);
         setFN(0);
         setFP(0);
+        conflitos = 0;
     }
 
     public int getVP() {
@@ -191,8 +263,8 @@ public class Detector {
     public void setFN(int FN) {
         this.FN = FN;
     }
-    
-     public double getDetectionAccuracy() {
+
+    public double getDetectionAccuracy() {
         try {
             return Float.valueOf(
                     Float.valueOf((getVP() + getVN()) * 100)
@@ -201,5 +273,17 @@ public class Detector {
 //            System.out.println(e.getLocalizedMessage());
         }
         return -1;
+    }
+
+    public int getCountTestInstances() {
+        return testInstances.size();
+    }
+
+    public ArrayList<Advice> getHistoricalData() {
+        return historicalData;
+    }
+
+    public int getGoodAdvices() {
+        return goodAdvices;
     }
 }
