@@ -20,39 +20,43 @@ public class Main {
 
 //    String test_file = ataque + "test_95.csv";
 //    String normal_file = ataque + "normal_test_95.csv";
-    static final String NORMAL_CLASS = "Normal";
+    static final String NORMAL_CLASS = "BENIGN";
 
     public static void main(String[] args) throws IOException, Exception {
         Main m = new Main();
-        int[] featureSelection = new int[]{1, 2, 3, 4, 5};
-        //int[] featureSelection = new int[]{};
-//        Instances trainInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/DETECTOR_UM_WEDNESDAY/10_train_files/compilado_train.csv", featureSelection);
-//        Instances evaluationInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/DETECTOR_UM_WEDNESDAY/10_evaluation_files/compilado_evaluation.csv", featureSelection);
-//        Instances testInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/DETECTOR_UM_WEDNESDAY/80_test_files/compilado_test_160.csv", featureSelection);
+        int[] oneR_Detector1 = new int[]{79, 40, 68, 13, 55};
+        int[] oneR_Detector2 = new int[]{79, 64, 5, 53, 35};
 
-//        Instances trainInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/pequeno1.csv", featureSelection);
-//        Instances evaluationInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/pequeno2.csv", featureSelection);
-        Instances testInstances = m.leadAndFilter(false, "/home/silvio/datasets/teste/testinho.csv", featureSelection);
-        Instances trainInstances = m.leadAndFilter(false, "/home/silvio/datasets/teste/train_mini.csv", featureSelection);
-        Instances evaluationInstances = m.leadAndFilter(false, "/home/silvio/datasets/teste/evaluation.csv", featureSelection);
-//        Instances testInstances = m.leadAndFilter(false, "/home/silvio/datasets/teste/test.csv", featureSelection);
+        /* Detector 1*/
+        Instances trainInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/DETECTOR_UM_WEDNESDAY/10_train_files/compilado_train_100k.csv", oneR_Detector1);
+        Instances evaluationInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/DETECTOR_UM_WEDNESDAY/10_evaluation_files/compilado_evaluation_100k.csv", oneR_Detector1);
+        Instances testInstances = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/DETECTOR_UM_WEDNESDAY/80_test_files/compilado_test_160_100k.csv", oneR_Detector1);
 
-        Instances evaluationInstances2 = m.leadAndFilter(false, "/home/silvio/datasets/teste/train_mini.csv", featureSelection);
-        Instances trainInstances2 = m.leadAndFilter(false, "/home/silvio/datasets/teste/evaluation.csv", featureSelection);
-        Instances testInstances2 = m.leadAndFilter(false, "/home/silvio/datasets/teste/testinho.csv", featureSelection);
+        /* Detector 2*/
+        Instances trainInstances2 = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/DETECTOR_DOIS_FRIDAY/10_train_files/compilado_train_10k.csv", oneR_Detector2);
+        Instances evaluationInstances2 = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/DETECTOR_DOIS_FRIDAY/10_evaluation_files/compilado_evaluation_100k.csv", oneR_Detector2);
+        // Mesmo teste do D1, mas com outras features
+        Instances testInstances2 = m.leadAndFilter(false, "/home/silvio/datasets/CICIDS2017_RC/DETECTOR_UM_WEDNESDAY/80_test_files/compilado_test_160_100k.csv", oneR_Detector2);
+
 
         /* Detector 1*/
         Detector D1 = new Detector(trainInstances, evaluationInstances, testInstances, NORMAL_CLASS);
-        D1.createClusters(5, 2);
-        System.out.println("\n######## Detector 1");
+
+        D1.createClusters(
+                5, 2);
+        System.out.println(
+                "\n######## Detector 1");
         D1.resetConters();
         D1 = trainEvaluateAndTest(D1, false, false, false);
 
         /* Detector 1*/
         Detector[] advisors = {D1};
         Detector D2 = new Detector(trainInstances2, evaluationInstances2, testInstances2, advisors, NORMAL_CLASS);
-        D2.createClusters(3, 2);
-        System.out.println("\n######## Detector 2");
+
+        D2.createClusters(
+                3, 2);
+        System.out.println(
+                "\n######## Detector 2");
         D2.resetConters();
         D2 = trainEvaluateAndTest(D2, false, false, true);
 
@@ -108,7 +112,7 @@ public class Main {
         System.out.println("  --  Test");
         System.out.println("------------------------------------------------------------------------");
         D1.resetConters();
-        D1.clusterAndTestSample(advices);
+        D1.clusterAndTestSample(advices, true, true);
 
 //        int VP = 0;
 //        int VN = 0;
@@ -136,7 +140,9 @@ public class Main {
 
         }
         System.out.println("------------------------------------------------------------------------");
-        System.out.println("  --  Test Summary: [" + D1.getConflitos() + "- conflitos] (Acc;VP;VN;FP;FN;" + D1.getDetectionAccuracy() + ";" + D1.getVP() + ";" + D1.getVN() + ";" + D1.getFP() + ";" + D1.getFN() + ") = (" + (D1.getVP() + D1.getVN() + D1.getFP() + D1.getFN()) + ")");
+        System.out.println("  --  Test Summary: [Solucionados "+ D1.getGoodAdvices()+"/"+ D1.getConflitos() + " conflitos de " + (D1.getVP() + D1.getVN() + D1.getFP() + D1.getFN()) + " classificações.] \n "
+                + "VP	VN	FP	FN	Acurácia \n"
+                + D1.getVP() + ";" + D1.getVN() + ";" + D1.getFP() + ";" + D1.getFN() + ";" + String.valueOf(D1.getDetectionAccuracy()).replace(".", ","));
         System.out.println("------------------------------------------------------------------------");
 
         return D1;
