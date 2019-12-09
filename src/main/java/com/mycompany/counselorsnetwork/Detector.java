@@ -28,7 +28,7 @@ public class Detector {
     int goodAdvices = 0;
     String normalClass;
     Detector[] advisors;
-
+    boolean saveTrainInsance = true; // Ponteiro para dividir entre treino e validação
     ArrayList<Advice> historicalData = new ArrayList<>();
 
     public Detector(Instances trainInstances, Instances evaluationInstances, Instances testInstances, String normalClass) {
@@ -37,7 +37,7 @@ public class Detector {
         this.evaluationInstancesNoLabel = new Instances(evaluationInstances);
         evaluationInstancesNoLabel.deleteAttributeAt(evaluationInstancesNoLabel.numAttributes() - 1);  // Removendo classe
         this.testInstances = testInstances;
-        this.testInstancesNoLabel = new Instances(testInstances);;
+        this.testInstancesNoLabel = new Instances(testInstances);
         testInstancesNoLabel.deleteAttributeAt(testInstancesNoLabel.numAttributes() - 1);  // Removendo classe
         testInstances.setClassIndex(evaluationInstances.numAttributes() - 1);
         advisors = new Detector[0];
@@ -93,59 +93,123 @@ public class Detector {
     public void clusterAndTestSample(boolean enableAdvice, boolean learnWithAdvice, boolean retrofeedWithoutDevices) throws Exception {
         // Calculando teste
 //        int maxSizeTrain = 10000;
+        boolean csv = true;
+        int fimTrafegoNormal = 0;
         System.out.println("Ten percent: " + (testInstances.size() / 10));
         for (int instIndex = 0; instIndex < testInstances.size(); instIndex++) {
+            if (!testInstances.get(instIndex).stringValue(testInstances.get(instIndex).attribute(testInstances.get(instIndex).classIndex())).equals(normalClass)) {
+                fimTrafegoNormal = instIndex;
+            }
             int tenPercent = testInstances.size() / 10;
             if (tenPercent == instIndex) {
-                System.out.print("[10%-" + trainInstances.size() + " (Acc: " + getDetectionAccuracy() + ")]");
+                if (csv) {
+                    System.out.print(getDetectionAccuracyString() + ";");
+                } else {
+                    System.out.print("[10%-" + trainInstances.size() + " (Acc: " + getDetectionAccuracy() + ")]");
+                }
                 if (retrofeedWithoutDevices) {
                     trainClassifiers(false);
+                    evaluateClassifiersPerCluster();
+                    selectClassifierPerCluster();
                 }
             } else if (tenPercent * 2 == instIndex) {
-                System.out.print("[20%-" + trainInstances.size() + " (Acc: " + getDetectionAccuracy() + ")]");
+                if (csv) {
+                    System.out.print(getDetectionAccuracyString() + ";");
+                } else {
+                    System.out.print("[20%-" + trainInstances.size() + " (Acc: " + getDetectionAccuracy() + ")]");
+                }
                 if (retrofeedWithoutDevices) {
                     trainClassifiers(false);
+                    evaluateClassifiersPerCluster();
+                    selectClassifierPerCluster();
                 }
             } else if (tenPercent * 3 == instIndex) {
-                System.out.print("[30%-" + trainInstances.size() + " (Acc: " + getDetectionAccuracy() + ")]");
+                if (csv) {
+                    System.out.print(getDetectionAccuracyString() + ";");
+                } else {
+                    System.out.print("[30%-" + trainInstances.size() + " (Acc: " + getDetectionAccuracy() + ")]");
+                }
                 if (retrofeedWithoutDevices) {
                     trainClassifiers(false);
+                    evaluateClassifiersPerCluster();
+                    selectClassifierPerCluster();
                 }
             } else if (tenPercent * 4 == instIndex) {
-                System.out.print("[40%-" + trainInstances.size() + " (Acc: " + getDetectionAccuracy() + ")]");
+                if (csv) {
+                    System.out.print(getDetectionAccuracyString() + ";");
+                } else {
+                    System.out.print("[40%-" + trainInstances.size() + " (Acc: " + getDetectionAccuracy() + ")]");
+                }
                 if (retrofeedWithoutDevices) {
                     trainClassifiers(false);
+                    evaluateClassifiersPerCluster();
+                    selectClassifierPerCluster();
                 }
             } else if (tenPercent * 5 == instIndex) {
-                System.out.print("[50%-" + trainInstances.size() + " (Acc: " + getDetectionAccuracy() + ")]");
+                if (csv) {
+                    System.out.print(getDetectionAccuracyString() + ";");
+                } else {
+                    System.out.print("[50%-" + trainInstances.size() + " (Acc: " + getDetectionAccuracy() + ")]");
+                }
                 if (retrofeedWithoutDevices) {
                     trainClassifiers(false);
+                    evaluateClassifiersPerCluster();
+                    selectClassifierPerCluster();
                 }
             } else if (tenPercent * 6 == instIndex) {
-                System.out.print("[60%-" + trainInstances.size()+ " (Acc: " + getDetectionAccuracy() + ")]");
+                if (csv) {
+                    System.out.print(getDetectionAccuracyString() + ";");
+                } else {
+                    System.out.print("[60%-" + trainInstances.size() + " (Acc: " + getDetectionAccuracy() + ")]");
+                }
                 if (retrofeedWithoutDevices) {
                     trainClassifiers(false);
+                    evaluateClassifiersPerCluster();
+                    selectClassifierPerCluster();
                 }
             } else if (tenPercent * 7 == instIndex) {
-                System.out.print("[70%-" + trainInstances.size()+ " (Acc: " + getDetectionAccuracy() + ")]");
+                if (csv) {
+                    System.out.print(getDetectionAccuracyString() + ";");
+                } else {
+                    System.out.print("[70%-" + trainInstances.size() + " (Acc: " + getDetectionAccuracy() + ")]");
+                }
                 if (retrofeedWithoutDevices) {
                     trainClassifiers(false);
+                    evaluateClassifiersPerCluster();
+                    selectClassifierPerCluster();
                 }
             } else if (tenPercent * 8 == instIndex) {
-                System.out.print("[80%-" + trainInstances.size() + " (Acc: " + getDetectionAccuracy() + ")]");
+                if (csv) {
+                    System.out.print(getDetectionAccuracyString() + ";");
+                } else {
+                    System.out.print("[80%-" + trainInstances.size() + " (Acc: " + getDetectionAccuracy() + ")]");
+                }
                 if (retrofeedWithoutDevices) {
                     trainClassifiers(false);
+                    evaluateClassifiersPerCluster();
+                    selectClassifierPerCluster();
                 }
             } else if (tenPercent * 9 == instIndex) {
-                System.out.print("[90%-" + trainInstances.size() + " (Acc: " + getDetectionAccuracy() + ")]");
+                if (csv) {
+                    System.out.print(getDetectionAccuracyString() + ";");
+                } else {
+                    System.out.print("[90%-" + trainInstances.size() + " (Acc: " + getDetectionAccuracy() + ")]");
+                }
                 if (retrofeedWithoutDevices) {
                     trainClassifiers(false);
+                    evaluateClassifiersPerCluster();
+                    selectClassifierPerCluster();
                 }
             } else if (tenPercent * 10 == instIndex) {
-                System.out.print("[100%-" + trainInstances.size() + " (Acc: " + getDetectionAccuracy() + ")]");
+                if (csv) {
+                    System.out.print(getDetectionAccuracyString() + ";");
+                } else {
+                    System.out.print("[100%-" + trainInstances.size() + " (Acc: " + getDetectionAccuracy() + ")]");
+                }
             }
             //          System.out.println("index: "+instIndex+"/"+testInstances.size());
-            int clusterNum = kmeans.clusterInstance(testInstancesNoLabel.get(instIndex));
+            Instance evaluatingPeer = testInstancesNoLabel.get(instIndex);
+            int clusterNum = kmeans.clusterInstance(evaluatingPeer);
             ArrayList<DetectorClassifier> selectedClassifiers = clusters[clusterNum].getSelectedClassifiers();
             int qtdClassificadores = selectedClassifiers.size();
             double classifiersOutput[][] = new double[qtdClassificadores][testInstances.size()];
@@ -172,15 +236,39 @@ public class Detector {
                         if (instance.stringValue(instance.attribute(instance.classIndex())).equals(normalClass)) {
                             FP = FP + 1;
                             instance.setClassValue(result);
+                            if (retrofeedWithoutDevices) {
+                                if (saveTrainInsance) {
+                                    trainInstances.add(instance); // Realimenta a cada amostra testada sem conflitos
+                                    saveTrainInsance = false;
+                                } else {
+                                    evaluationInstancesNoLabel.add(evaluatingPeer); // Realimenta a cada amostra testada sem conflitos
+                                    saveTrainInsance = true;
+                                }
+                            }
                         } else {
                             FN = FN + 1;
                             instance.setClassValue(result);
+                            if (retrofeedWithoutDevices) {
+                                if (saveTrainInsance) {
+                                    trainInstances.add(instance); // Realimenta a cada amostra testada sem conflitos
+                                    saveTrainInsance = false;
+                                } else {
+                                    evaluationInstancesNoLabel.add(evaluatingPeer); // Realimenta a cada amostra testada sem conflitos
+                                    saveTrainInsance = true;
+                                }
+                            }
                         }
 
                     }
 
                     if (learnWithAdvice) {
-                        trainInstances.add(instance); // Realimenta a cada amostra testada sem conflitos
+                        if (saveTrainInsance) {
+                            trainInstances.add(instance); // Realimenta a cada amostra testada sem conflitos
+                            saveTrainInsance = false;
+                        } else {
+                            evaluationInstancesNoLabel.add(evaluatingPeer); // Realimenta a cada amostra testada sem conflitos
+                            saveTrainInsance = false;
+                        }
                     }
 
                 } else if (classifIndex > 0 && selectedClassifiers.size() > 1) {
@@ -205,6 +293,8 @@ public class Detector {
                                         trainInstances.add(instance); // Realimenta a cada conselho
                                         /* Treina Todos Classificadores Novamente */
                                         trainClassifiers(false);
+                                        evaluateClassifiersPerCluster();
+                                        selectClassifierPerCluster();
                                     }
                                     if (advice.getAdvisorResult() == correctValue) {
                                         goodAdvices = goodAdvices + 1;
@@ -232,6 +322,7 @@ public class Detector {
 
         }
         System.out.println("Good Advices: " + getGoodAdvices() + "/" + conflitos);
+        System.out.println("Os ataques começaram na amostra " + fimTrafegoNormal + "(" + (fimTrafegoNormal / testInstances.numAttributes()) + "%)");
     }
 
     public Advice getAdvice(int timestamp) {
@@ -311,6 +402,18 @@ public class Detector {
 //            System.out.println(e.getLocalizedMessage());
         }
         return -1;
+    }
+
+    public String getDetectionAccuracyString() {
+        try {
+            double acc = Float.valueOf(
+                    Float.valueOf((getVP() + getVN()) * 100)
+                    / Float.valueOf(getVP() + getVN() + getFP() + getFN()));
+            return String.valueOf(acc / 100).replace(".", ",");
+        } catch (ArithmeticException e) {
+//            System.out.println(e.getLocalizedMessage());
+        }
+        return "-1";
     }
 
     public int getCountTestInstances() {

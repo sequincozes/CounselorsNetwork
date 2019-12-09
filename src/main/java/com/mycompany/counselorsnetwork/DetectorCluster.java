@@ -32,7 +32,8 @@ public class DetectorCluster {
 
     ArrayList<Integer> clusteredInstancesIndex; //[cluster][index]
     int clusterNum;
-    double threshold = 0.5; // 2% do best 
+    double threshold = 3.0; // 2% do best 
+    double minAccAcceptable = 80.0;
 
     public DetectorCluster(int clusterNum) {
         this.clusteredInstancesIndex = new ArrayList<Integer>();
@@ -59,12 +60,14 @@ public class DetectorCluster {
         }
 
         for (DetectorClassifier c : classifiers) {
-            if (c.evaluationAccuracy + threshold >= best.getEvaluationAccuracy()) {
+            if ((c.evaluationAccuracy + threshold >= best.getEvaluationAccuracy()) && (c.evaluationAccuracy >= getMinAccAcceptable())) {
                 selectedClassifiers.add(c);
                 c.setSelected(true);
+//                System.out.println("Classificador: "+c.getName()+" selecionado."+c.evaluationAccuracy+" >= "+getMinAccAcceptable()); 
             } else {
                 c.setSelected(false);
-            }
+//                System.out.println("Classificador: "+c.getName()+" excluido."); 
+           }
         }
     }
 
@@ -109,4 +112,11 @@ public class DetectorCluster {
         return classifiers;
     }
 
+    public double getMinAccAcceptable() {
+        return minAccAcceptable;
+    }
+
+    public void setMinAccAcceptable(double minAccAcceptable) {
+        this.minAccAcceptable = minAccAcceptable;
+    }
 }
