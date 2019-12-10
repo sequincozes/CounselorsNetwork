@@ -102,12 +102,14 @@ public class Detector {
 
         for (int instIndex = 0; instIndex < testInstances.size(); instIndex++) {
             if (!testInstances.get(instIndex).stringValue(testInstances.get(instIndex).attribute(testInstances.get(instIndex).classIndex())).equals(normalClass)) {
-                fimTrafegoNormal = instIndex;
+                if (fimTrafegoNormal == 0) {
+                    fimTrafegoNormal = instIndex;
+                }
             }
-            
+
             if (nextPoint == instIndex) {
                 nextPoint = nextPoint + percentRetrofeed;
-                System.out.println(getDetectionAccuracyString() + ";" + trainInstances.size() + ";" + evaluationInstances.size());
+                System.out.println(getDetectionAccuracyString());// + ";" + trainInstances.size() + ";" + evaluationInstances.size());
                 if (learnWithoutAdvices) {
                     trainClassifiers(false);
                     evaluateClassifiersPerCluster();
@@ -242,7 +244,9 @@ public class Detector {
         System.out.println("Ten percent: " + (testInstances.size() / 10));
         for (int instIndex = 0; instIndex < testInstances.size(); instIndex++) {
             if (!testInstances.get(instIndex).stringValue(testInstances.get(instIndex).attribute(testInstances.get(instIndex).classIndex())).equals(normalClass)) {
-                fimTrafegoNormal = instIndex;
+                if (fimTrafegoNormal == 0) {
+                    fimTrafegoNormal = instIndex;
+                }
             }
             int tenPercent = testInstances.size() / 10;
             if (tenPercent == instIndex) {

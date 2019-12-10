@@ -71,8 +71,8 @@ public class MainD3andD4 {
         Detector D4 = new Detector(D4Instances[0], D4Instances[1], D3InstancesGAMBI[2], advisors, NORMAL_CLASS);
         D4.createClusters(6, 4);
         D4.resetConters();
-        boolean printsD4[] = {true, true, true};
-        boolean paramsD4[] = {true, true};
+        boolean printsD4[] = {true, true, true}; // {printTrain, printEvaluation, printTest}
+        boolean paramsD4[] = {true, true}; //{Advice, SelfLearning}
         D4 = trainEvaluateAndTest(D4, printsD4, paramsD4);
 //        }
     }
