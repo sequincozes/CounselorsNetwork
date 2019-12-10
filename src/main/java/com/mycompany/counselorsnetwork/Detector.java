@@ -90,7 +90,151 @@ public class Detector {
         }
     }
 
-    public void clusterAndTestSample(boolean enableAdvice, boolean learnWithAdvice, boolean retrofeedWithoutDevices) throws Exception {
+    public void clusterAndTestSample(boolean enableAdvice, boolean learnWithAdvice, boolean learnWithoutAdvices) throws Exception {
+        // Calculando teste
+//        int maxSizeTrain = 10000;
+        boolean csv = true;
+        int fimTrafegoNormal = 0;
+        int percentRetrofeedAlfa = 100; //num of segments
+        int percentRetrofeed = testInstances.size() / percentRetrofeedAlfa;
+        int nextPoint = percentRetrofeed;
+        System.out.println("Ten percent: " + percentRetrofeed);
+
+        for (int instIndex = 0; instIndex < testInstances.size(); instIndex++) {
+            if (!testInstances.get(instIndex).stringValue(testInstances.get(instIndex).attribute(testInstances.get(instIndex).classIndex())).equals(normalClass)) {
+                fimTrafegoNormal = instIndex;
+            }
+            
+            if (nextPoint == instIndex) {
+                nextPoint = nextPoint + percentRetrofeed;
+                System.out.println(getDetectionAccuracyString() + ";" + trainInstances.size() + ";" + evaluationInstances.size());
+                if (learnWithoutAdvices) {
+                    trainClassifiers(false);
+                    evaluateClassifiersPerCluster();
+                    selectClassifierPerCluster();
+                }
+            }
+
+            Instance evaluatingPeer = testInstancesNoLabel.get(instIndex);
+            int clusterNum = kmeans.clusterInstance(evaluatingPeer);
+            ArrayList<DetectorClassifier> selectedClassifiers = clusters[clusterNum].getSelectedClassifiers();
+            int qtdClassificadores = selectedClassifiers.size();
+            double classifiersOutput[][] = new double[qtdClassificadores][testInstances.size()];
+
+            /* Se o classificador for selecionado, classificar com ele */
+            for (int classifIndex = 0; classifIndex < qtdClassificadores; classifIndex++) {
+                DetectorClassifier c = selectedClassifiers.get(classifIndex);
+                Instance instance = testInstances.get(instIndex);
+                double result = c.testSingle(instance);
+                double correctValue = instance.classValue();
+                classifiersOutput[classifIndex][instIndex] = result;
+
+                // Se nao for o primeiro classificador, mas houverem mais de um selecionado
+                if (classifIndex > 0 && classifIndex < qtdClassificadores - 1 && selectedClassifiers.size() > 1) {
+                    // Checa conflito com o anterior
+                    if (classifiersOutput[classifIndex][instIndex] != classifiersOutput[classifIndex - 1][instIndex]) {
+                        historicalData.add(new Advice(0, -77, correctValue, normalClass));
+                        conflitos = conflitos + 1;
+                        /* REDE DE CONSELHOS */
+                        if (enableAdvice) {
+//                            System.out.println("########## CONFLITO #########");
+//                            System.out.println("Classifier output:" + classifiersOutput[classifIndex][instIndex] + " vs " + classifiersOutput[classifIndex - 1][instIndex]);
+                            if (advisors.length > 0) {
+                                for (Detector d : advisors) {
+                                    Advice advice = d.getAdvice(instIndex);
+//                                    System.out.println("Requesting conseil...");
+//                                    System.out.println("Advisors' response: " + advice.getAdvisorResult() + " (" + String.valueOf(advice.accuracy).substring(0, 5) + ")%, correct is: " + advice.correctResult + "(Good Adivices: " + getGoodAdvices() + ")");
+                                    result = advice.getAdvisorResult();
+                                    instance.setClassValue(result);
+                                    if (learnWithAdvice) {
+                                        trainInstances.add(instance); // Realimenta a cada conselho
+                                        /* Treina Todos Classificadores Novamente */
+                                        trainClassifiers(false);
+                                        evaluateClassifiersPerCluster();
+                                        selectClassifierPerCluster();
+                                    }
+                                    if (advice.getAdvisorResult() == correctValue) {
+                                        goodAdvices = goodAdvices + 1;
+//                                        System.out.println("Class: " + advice.getClassNormal());
+                                        if (advice.getClassNormal().equals(normalClass)) {
+                                            VN = VN + 1;
+                                        } else {
+                                            VP = VP + 1;
+                                        }
+                                    } else {
+                                        if (advice.getClassNormal().equals(normalClass)) {
+                                            FP = FP + 1;
+                                        } else {
+                                            FN = FN + 1;
+                                        }
+
+                                    }
+
+                                    if (learnWithAdvice) {
+                                        if (saveTrainInsance) {
+                                            trainInstances.add(instance); // Realimenta a cada amostra testada sem conflitos
+                                            saveTrainInsance = false;
+//                                            System.out.println("Aprendeu com conflito [" + conflitos + "].");
+                                        } else {
+                                            evaluationInstances.add(instance);
+                                            evaluationInstancesNoLabel.add(evaluatingPeer); // Realimenta a cada amostra testada sem conflitos
+                                            saveTrainInsance = true;
+//                                            System.out.println("Aprendeu com conflito [" + conflitos + "].");
+                                        }
+                                    }
+                                }
+                            } else {
+                                System.out.println("Ocorreu um conflito mas nao há conselheiros.");
+                            }
+                        }
+                    }
+
+                    /* Se esse for o ultimo classificador da lista, é porque nao ocorreram conflitos*/
+                } else if (classifIndex == (qtdClassificadores - 1)) {
+                    /* Salva um conselho para ser oferecido a outro detector */
+                    historicalData.add(instIndex, new Advice(c.evaluationAccuracy, result, correctValue, normalClass));
+                    if (result == correctValue) {
+                        if (instance.stringValue(instance.attribute(instance.classIndex())).equals(normalClass)) {
+                            VN = VN + 1;
+                        } else {
+                            VP = VP + 1;
+                        }
+                    } else {
+                        if (instance.stringValue(instance.attribute(instance.classIndex())).equals(normalClass)) {
+                            FP = FP + 1;
+                            instance.setClassValue(result);
+                        } else {
+                            FN = FN + 1;
+                            instance.setClassValue(result);
+                        }
+                    }
+                    /* Aprende sem Conflitos*/
+                    if (learnWithoutAdvices) {
+                        if (saveTrainInsance) {
+                            trainInstances.add(instance); // Realimenta a cada amostra testada sem conflitos
+                            saveTrainInsance = false;
+//                            System.out.println("Aprendeu com conflito [" + conflitos + "].");
+                        } else {
+                            evaluationInstancesNoLabel.add(evaluatingPeer); // Realimenta a cada amostra testada sem conflitos
+                            evaluationInstances.add(instance);
+                            saveTrainInsance = true;
+//                            System.out.println("Aprendeu com conflito.");
+                        }
+                    }
+                }
+
+            }
+
+        }
+
+        System.out.println(
+                "Good Advices: " + getGoodAdvices() + "/" + conflitos);
+        System.out.println(
+                "Os ataques começaram na amostra " + fimTrafegoNormal + "(" + (fimTrafegoNormal / testInstances.numAttributes()) + "%)");
+    }
+
+    @Deprecated
+    public void clusterAndTestSample10(boolean enableAdvice, boolean learnWithAdvice, boolean retrofeedWithoutDevices) throws Exception {
         // Calculando teste
 //        int maxSizeTrain = 10000;
         boolean csv = true;

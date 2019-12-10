@@ -49,7 +49,9 @@ public class MainD3andD4 {
 
         D3.createClusters(4, 4);
         D3.resetConters();
-        D3 = trainEvaluateAndTest(D3, false, false, false, true);
+        boolean printsD3[] = {false, false, false};
+        boolean paramsD3[] = {false, false};
+        D3 = trainEvaluateAndTest(D3, printsD3, paramsD3);
 //        }
 
         /* Detector 4*/
@@ -69,12 +71,19 @@ public class MainD3andD4 {
         Detector D4 = new Detector(D4Instances[0], D4Instances[1], D3InstancesGAMBI[2], advisors, NORMAL_CLASS);
         D4.createClusters(6, 4);
         D4.resetConters();
-
-        D4 = trainEvaluateAndTest(D4, false, false, true, true);
+        boolean printsD4[] = {true, true, true};
+        boolean paramsD4[] = {true, true};
+        D4 = trainEvaluateAndTest(D4, printsD4, paramsD4);
 //        }
     }
 
-    private static Detector trainEvaluateAndTest(Detector detectorTesting, boolean printEvaluation, boolean printTrain, boolean advices, boolean alwaysLearn) throws Exception {
+    private static Detector trainEvaluateAndTest(Detector detectorTesting, boolean prints[], boolean params[]) throws Exception {
+        boolean printTrain = prints[0];
+        boolean printEvaluation = prints[1];
+        boolean printTests = prints[2];
+        boolean advices = params[0];
+        boolean alwaysLearn = params[1];
+
         /* Train Phase*/
         System.out.println("------------------------------------------------------------------------");
         System.out.println("  --  Train");
@@ -131,26 +140,28 @@ public class MainD3andD4 {
 //        int VN = 0;
 //        int FP = 0;
 //        int FN = 0;
-        for (DetectorCluster d : detectorTesting.getClusters()) {
-            System.out.println("---- Cluster " + d.clusterNum + ":");
-            for (DetectorClassifier c : d.getClassifiers()) {
-                if (c.isSelected()) {
-                    System.out.println("[X]" + c.getName()
-                            + " - " + c.getTestAccuracy()
-                            + " (VP;VN;FP;FN) = "
-                            + "("
-                            + c.getVP()
-                            + ";" + c.getVN()
-                            + ";" + c.getFP()
-                            + ";" + c.getFN()
-                            + ") = ("
-                            + (c.getVP() + c.getVN() + c.getFP() + c.getFN())
-                            + "/" + detectorTesting.getCountTestInstances() + ")");
-                    /* Atualiza Totais*/
+        if (printTests) {
+            for (DetectorCluster d : detectorTesting.getClusters()) {
+                System.out.println("---- Cluster " + d.clusterNum + ":");
+                for (DetectorClassifier c : d.getClassifiers()) {
+                    if (c.isSelected()) {
+                        System.out.println("[X]" + c.getName()
+                                + " - " + c.getTestAccuracy()
+                                + " (VP;VN;FP;FN) = "
+                                + "("
+                                + c.getVP()
+                                + ";" + c.getVN()
+                                + ";" + c.getFP()
+                                + ";" + c.getFN()
+                                + ") = ("
+                                + (c.getVP() + c.getVN() + c.getFP() + c.getFN())
+                                + "/" + detectorTesting.getCountTestInstances() + ")");
+                        /* Atualiza Totais*/
+                    }
+
                 }
 
             }
-
         }
         System.out.println("------------------------------------------------------------------------");
         System.out.println("  --  Test Summary: [Solucionados " + detectorTesting.getGoodAdvices() + "/" + detectorTesting.getConflitos() + " conflitos de " + (detectorTesting.getVP() + detectorTesting.getVN() + detectorTesting.getFP() + detectorTesting.getFN()) + " classificações.] \n "
@@ -169,7 +180,7 @@ public class MainD3andD4 {
         for (String local : instancesLocation) {
             Instances all = leadAndFilter(false, local, filter);
             Instances[] splitted50 = splitInstance(all, factor);
-            Instances[] splitted25 = splitInstance(splitted50[0], factor);
+            Instances[] splitted25 = splitInstance(splitted50[0], 50);
             try {
                 train.addAll(splitted25[0]);
                 evaluation.addAll(splitted25[1]);
