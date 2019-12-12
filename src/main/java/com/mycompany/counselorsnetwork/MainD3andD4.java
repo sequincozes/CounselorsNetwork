@@ -39,11 +39,13 @@ public class MainD3andD4 {
         String sql_injection_file = "/home/silvio/datasets/CICIDS2017_RC/detector3/sql_injection.csv";
         String ssh_patator = "/home/silvio/datasets/CICIDS2017_RC/detector3/ssh_patator.csv";
         String xss_injection = "/home/silvio/datasets/CICIDS2017_RC/detector3/xss_injection.csv";
-        Instances[] D3Instances = m.buildInstances(fator, new String[]{benign, brute_force_file, ftp_patator_file, sql_injection_file, ssh_patator, xss_injection}, D3Filter);
+        Instances[] D3Instances = m.buildInstances(fator, new String[]{
+            benign, brute_force_file, ftp_patator_file, sql_injection_file, ssh_patator, xss_injection
+        }, D3Filter);
 
         Instances[] D3SSHPatatorInstances = m.buildInstances(fator,
                 new String[]{
-                    ssh_patator, benign
+                    benign, brute_force_file, ftp_patator_file, sql_injection_file, ssh_patator, xss_injection,
                 }, D3Filter);
 
         System.out.println(D3Instances[0].size() + "/" + D3Instances[1].size() + "/" + D3Instances[2].size());
@@ -51,9 +53,9 @@ public class MainD3andD4 {
 
         D3.createClusters(4, 4);
         D3.resetConters();
-        boolean printsD3[] = {false, false, false};
+        boolean printsD3[] = {false, false, false, false};
         boolean paramsD3[] = {false, false};
-        //D3 = trainEvaluateAndTest(D3, printsD3, paramsD3);
+        D3 = trainEvaluateAndTest(D3, printsD3, paramsD3);
 
 
         /* Detector 4*/
@@ -67,7 +69,7 @@ public class MainD3andD4 {
 
         /* CRIANDO CENÁRIO HOSTÍL*/
         Instances[] D4SSHPatatorInstances = m.buildInstances(fator, new String[]{
-            ssh_patator, benign
+            benign, brute_force_file, ftp_patator_file, sql_injection_file, ssh_patator, xss_injection,
         }, D4Filter);
         D4Instances[1].addAll(D4SSHPatatorInstances[1]);
         System.out.println("Patator Evaluation: " + D4SSHPatatorInstances[1].size());
@@ -77,7 +79,7 @@ public class MainD3andD4 {
                 D4SSHPatatorInstances[2], advisors, NORMAL_CLASS);
         D4.createClusters(4, 4);
         D4.resetConters();
-        boolean printsD4[] = {false, true, true}; // {printTrain, printEvaluation, printTest}
+        boolean printsD4[] = {true, true, true, true}; // {printTrain, printEvaluation, printTest, showProgress}
         boolean paramsD4[] = {true, true}; //{Advice, SelfLearning}
         D4 = trainEvaluateAndTest(D4, printsD4, paramsD4);
 //        }
@@ -86,6 +88,7 @@ public class MainD3andD4 {
     private static Detector trainEvaluateAndTest(Detector detectorTesting, boolean prints[], boolean params[]) throws Exception {
         boolean printTrain = prints[0];
         boolean printEvaluation = prints[1];
+        boolean showProgress = prints[3];
         boolean printTests = prints[2];
         boolean advices = params[0];
         boolean alwaysLearn = params[1];
@@ -98,82 +101,18 @@ public class MainD3andD4 {
         detectorTesting.trainClassifiers(printTrain);
 
         /* Evaluation Phase */
-        detectorTesting.evaluateClassifiersPerCluster();
-        detectorTesting.selectClassifierPerCluster();
-        if (printEvaluation) {
-            System.out.println("------------------------------------------------------------------------");
-            System.out.println("  --  Evaluation");
-            System.out.println("------------------------------------------------------------------------");
-            for (DetectorCluster d : detectorTesting.getClusters()) {
-                System.out.println("---- Cluster " + d.clusterNum + ":");
-                for (DetectorClassifier c : d.getClassifiers()) {
-                    if (c.isSelected()) {
-                        System.out.println("[X]" + c.getName()
-                                + " - " + c.getEvaluationAccuracy()
-                                + " (VP;VN;FP;FN) = "
-                                + "("
-                                + c.getVP()
-                                + ";" + c.getVN()
-                                + ";" + c.getFP()
-                                + ";" + c.getFN()
-                                + ")"
-                        );
-                    } else {
-                        System.out.println(c.getName()
-                                + "[N] - " + c.getEvaluationAccuracy()
-                                + " (VP;VN;FP;FN) = "
-                                + "("
-                                + c.getVP()
-                                + ";" + c.getVN()
-                                + ";" + c.getFP()
-                                + ";" + c.getFN()
-                                + ")"
-                        );
-                    }
-                }
-
-            }
-        }
-        System.exit(0);
+        detectorTesting.evaluateClassifiersPerCluster(printEvaluation, showProgress);
+        // System.exit(0);
         /* Test Phase */
         System.out.println("------------------------------------------------------------------------");
         System.out.println("  --  Test");
         System.out.println("------------------------------------------------------------------------");
         detectorTesting.resetConters();
-        detectorTesting.clusterAndTestSample(advices, true, alwaysLearn);
+        detectorTesting.clusterAndTestSample(advices, true, alwaysLearn, printEvaluation, showProgress);
 
-//        int VP = 0;
-//        int VN = 0;
-//        int FP = 0;
-//        int FN = 0;
         if (printTests) {
-            for (DetectorCluster d : detectorTesting.getClusters()) {
-                System.out.println("---- Cluster " + d.clusterNum + ":");
-                for (DetectorClassifier c : d.getClassifiers()) {
-                    if (c.isSelected()) {
-                        System.out.println("[X]" + c.getName()
-                                + " - " + c.getTestAccuracy()
-                                + " (VP;VN;FP;FN) = "
-                                + "("
-                                + c.getVP()
-                                + ";" + c.getVN()
-                                + ";" + c.getFP()
-                                + ";" + c.getFN()
-                                + ") = ("
-                                + (c.getVP() + c.getVN() + c.getFP() + c.getFN())
-                                + "/" + detectorTesting.getCountTestInstances() + ")");
-                        /* Atualiza Totais*/
-                    }
-
-                }
-
-            }
+            detectorTesting.printTestResults();
         }
-        System.out.println("------------------------------------------------------------------------");
-        System.out.println("  --  Test Summary: [Solucionados " + detectorTesting.getGoodAdvices() + "/" + detectorTesting.getConflitos() + " conflitos de " + (detectorTesting.getVP() + detectorTesting.getVN() + detectorTesting.getFP() + detectorTesting.getFN()) + " classificações.] \n "
-                + "VP	VN	FP	FN	Acurácia \n"
-                + detectorTesting.getVP() + ";" + detectorTesting.getVN() + ";" + detectorTesting.getFP() + ";" + detectorTesting.getFN() + ";" + String.valueOf(detectorTesting.getDetectionAccuracy()).replace(".", ","));
-        System.out.println("------------------------------------------------------------------------");
 
         return detectorTesting;
     }

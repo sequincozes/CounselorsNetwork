@@ -47,7 +47,7 @@ public class Main {
         System.out.println(
                 "\n######## Detector 1");
         D1.resetConters();
-        D1 = trainEvaluateAndTest(D1, false, false, false);
+        D1 = trainEvaluateAndTest(D1, false, false, false, true);
 
         /* Detector 1*/
         Detector[] advisors = {D1};
@@ -58,11 +58,11 @@ public class Main {
         System.out.println(
                 "\n######## Detector 2");
         D2.resetConters();
-        D2 = trainEvaluateAndTest(D2, false, false, true);
+        D2 = trainEvaluateAndTest(D2, false, false, true, true);
 
     }
 
-    private static Detector trainEvaluateAndTest(Detector D1, boolean printEvaluation, boolean printTrain, boolean advices) throws Exception {
+    private static Detector trainEvaluateAndTest(Detector D1, boolean printEvaluation, boolean printTrain, boolean advices, boolean showProgress) throws Exception {
         /* Train Phase*/
         System.out.println("------------------------------------------------------------------------");
         System.out.println("  --  Train");
@@ -71,49 +71,10 @@ public class Main {
         D1.trainClassifiers(printTrain);
 
         /* Evaluation Phase */
-        D1.evaluateClassifiersPerCluster();
-        D1.selectClassifierPerCluster();
-        if (printEvaluation) {
-            System.out.println("------------------------------------------------------------------------");
-            System.out.println("  --  Evaluation");
-            System.out.println("------------------------------------------------------------------------");
-            for (DetectorCluster d : D1.getClusters()) {
-                System.out.println("---- Cluster " + d.clusterNum + ":");
-                for (DetectorClassifier c : d.getClassifiers()) {
-                    if (c.isSelected()) {
-                        System.out.println("[X]" + c.getName()
-                                + " - " + c.getEvaluationAccuracy()
-                                + " (VP;VN;FP;FN) = "
-                                + "("
-                                + c.getVP()
-                                + ";" + c.getVN()
-                                + ";" + c.getFP()
-                                + ";" + c.getFN()
-                                + ")"
-                        );
-                    } else {
-                        System.out.println(c.getName()
-                                + "[N] - " + c.getEvaluationAccuracy()
-                                + " (VP;VN;FP;FN) = "
-                                + "("
-                                + c.getVP()
-                                + ";" + c.getVN()
-                                + ";" + c.getFP()
-                                + ";" + c.getFN()
-                                + ")"
-                        );
-                    }
-                }
-
-            }
-        }
-        
+        D1.evaluateClassifiersPerCluster(printEvaluation, showProgress);       
+                
         /* Test Phase */
-        System.out.println("------------------------------------------------------------------------");
-        System.out.println("  --  Test");
-        System.out.println("------------------------------------------------------------------------");
-        D1.resetConters();
-        D1.clusterAndTestSample(advices, true, true);
+        D1.clusterAndTestSample(advices, true, true,printEvaluation, showProgress);
 
 //        int VP = 0;
 //        int VN = 0;

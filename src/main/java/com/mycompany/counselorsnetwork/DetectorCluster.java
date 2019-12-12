@@ -34,6 +34,7 @@ public class DetectorCluster {
     int clusterNum;
     double threshold = 3.0; // 2% do best 
     double minAccAcceptable = 80.0;
+    String strAcc = "";
 
     public DetectorCluster(int clusterNum) {
         this.clusteredInstancesIndex = new ArrayList<Integer>();
@@ -50,7 +51,11 @@ public class DetectorCluster {
         }
     }
 
-    public void classifierSelection() throws Exception {
+    public void printStrEvaluation() {
+        System.out.println("Cluster " + clusterNum + ";" + strAcc);
+    }
+
+    public void classifierSelection(boolean showProgressSelection) throws Exception {
         selectedClassifiers = new ArrayList<>();
         DetectorClassifier best = classifiers[0];
         for (DetectorClassifier c : classifiers) {
@@ -67,7 +72,10 @@ public class DetectorCluster {
             } else {
                 c.setSelected(false);
 //                System.out.println("Classificador: "+c.getName()+" excluido."); 
-           }
+            }
+        }
+        if (showProgressSelection) {
+            strAcc = strAcc + String.valueOf(best.getEvaluationAccuracy()).replace(".", ",") + ";";
         }
     }
 
@@ -75,12 +83,6 @@ public class DetectorCluster {
         for (DetectorClassifier c : classifiers) {
             dataTrain.setClassIndex(dataTrain.numAttributes() - 1);
             c.train(dataTrain, showTrainingTime);
-        }
-    }
-
-    public void trainClassifiers(DetectorClassifier[] classifiersTrained) throws Exception {
-        for (int i = 0; i < classifiers.length - 1; i++) {
-            classifiers[i] = classifiersTrained[i];
         }
     }
 
