@@ -40,22 +40,23 @@ public class MainD3andD4 {
         String ssh_patator = "/home/silvio/datasets/CICIDS2017_RC/detector3/ssh_patator.csv";
         String xss_injection = "/home/silvio/datasets/CICIDS2017_RC/detector3/xss_injection.csv";
         Instances[] D3Instances = m.buildInstances(fator, new String[]{benign, brute_force_file, ftp_patator_file, sql_injection_file, ssh_patator, xss_injection}, D3Filter);
+
+        Instances[] D3SSHPatatorInstances = m.buildInstances(fator,
+                new String[]{
+                    ssh_patator, benign
+                }, D3Filter);
+
         System.out.println(D3Instances[0].size() + "/" + D3Instances[1].size() + "/" + D3Instances[2].size());
-//        if (false) {
-//            System.out.println("Features p/ Detector 3:");
-//            Util.avaliarESelecionar(5, D3Instances[2], Util.METODO.GR, true);
-//            System.exit(0);
-        Detector D3 = new Detector(D3Instances[0], D3Instances[1], D3Instances[2], NORMAL_CLASS);
+        Detector D3 = new Detector(D3Instances[0], D3Instances[1], D3SSHPatatorInstances[2], NORMAL_CLASS);
 
         D3.createClusters(4, 4);
         D3.resetConters();
         boolean printsD3[] = {false, false, false};
         boolean paramsD3[] = {false, false};
-        D3 = trainEvaluateAndTest(D3, printsD3, paramsD3);
-//        }
+        //D3 = trainEvaluateAndTest(D3, printsD3, paramsD3);
+
 
         /* Detector 4*/
-//        if (true) {
         System.out.println("\n######## Detector 4 (DoS)");
         String goldeneye = "/home/silvio/datasets/CICIDS2017_RC/detector4/goldeneye.csv";
         String heartbleed = "/home/silvio/datasets/CICIDS2017_RC/detector4/heartbleed.csv";
@@ -63,15 +64,20 @@ public class MainD3andD4 {
         String slowhttptest = "/home/silvio/datasets/CICIDS2017_RC/detector4/slowhttptest.csv";
         String slowloris = "/home/silvio/datasets/CICIDS2017_RC/detector4/slowloris.csv";
         Instances[] D4Instances = m.buildInstances(fator, new String[]{benign, goldeneye, heartbleed, hulk, slowhttptest, slowloris}, D4Filter);
-        Instances[] D3InstancesGAMBI = m.buildInstances(fator, new String[]{benign, brute_force_file, ftp_patator_file, sql_injection_file, ssh_patator, xss_injection}, D4Filter);
-//            System.out.println("Features p/ Detector 4:");
-//            Util.avaliarESelecionar(15, D4Instances[2], Util.METODO.GR, true);
-//            System.exit(0);
+
+        /* CRIANDO CENÁRIO HOSTÍL*/
+        Instances[] D4SSHPatatorInstances = m.buildInstances(fator, new String[]{
+            ssh_patator, benign
+        }, D4Filter);
+        D4Instances[1].addAll(D4SSHPatatorInstances[1]);
+        System.out.println("Patator Evaluation: " + D4SSHPatatorInstances[1].size());
+
         Detector[] advisors = {D3};
-        Detector D4 = new Detector(D4Instances[0], D4Instances[1], D3InstancesGAMBI[2], advisors, NORMAL_CLASS);
-        D4.createClusters(6, 4);
+        Detector D4 = new Detector(D4Instances[0], D4SSHPatatorInstances[1],
+                D4SSHPatatorInstances[2], advisors, NORMAL_CLASS);
+        D4.createClusters(4, 4);
         D4.resetConters();
-        boolean printsD4[] = {true, true, true}; // {printTrain, printEvaluation, printTest}
+        boolean printsD4[] = {false, true, true}; // {printTrain, printEvaluation, printTest}
         boolean paramsD4[] = {true, true}; //{Advice, SelfLearning}
         D4 = trainEvaluateAndTest(D4, printsD4, paramsD4);
 //        }
@@ -128,7 +134,7 @@ public class MainD3andD4 {
 
             }
         }
-
+        System.exit(0);
         /* Test Phase */
         System.out.println("------------------------------------------------------------------------");
         System.out.println("  --  Test");
